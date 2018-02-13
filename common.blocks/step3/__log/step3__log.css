@@ -1,0 +1,7 @@
+.step3__log {
+    margin-left: 50px;
+}
+
+.step3__log:last-child {
+    margin-top: 50px;
+}

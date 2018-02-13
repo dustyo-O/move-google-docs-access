@@ -1,0 +1,1 @@
+block('body').addJs()(true);

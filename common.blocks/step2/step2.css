@@ -1,0 +1,7 @@
+.step2 {
+    display: none;
+}
+
+.step2_visible {
+    display: block;
+}

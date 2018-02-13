@@ -1,0 +1,16 @@
+.step3 {
+    position: relative;
+
+    display: none;
+}
+
+.step3 .spin[class] {
+    position: absolute;
+
+    bottom: 0;
+}
+
+
+.step3_visible {
+    display: block;
+}
