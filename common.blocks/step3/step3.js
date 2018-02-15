@@ -7,8 +7,10 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                     console.log('LOOPFOLDERS ' + i);
                     if (i < folders.length) {
                         var folder = folders[i];
-                        _this._retrievePage(folder, null, null, function () {
-                            //_this._logAction('Жду одну секунду, чтобы не упереться в лимит операций...');
+                        _this._logAction('current', folder);
+                        _this._retrievePage(folder.id, null, null, function () {
+                            _this._logAction('exit');
+                            //_this._logAction('log', 'Жду одну секунду, чтобы не упереться в лимит операций...');
                             setTimeout(function() {
                                 loopFolders(i + 1, folders, onFinish);
                             }, 1000);
@@ -26,12 +28,13 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                 this._foldersLimit = 5;
                 this._foldersDone = [];
                 this._filesDone = [];
+                this._path = [];
 
                 this._fromUser = data.fromUser;
                 this._toUser = data.toUser;
 
                 loopFolders(0, data.folders, function() {
-                    _this._logAction('Готово!');
+                    _this._logAction('log', 'Готово!');
                     _this.findChildBlock(Spin).delMod('visible');
                 })
             },
@@ -80,13 +83,15 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                             (_this._filesDone.indexOf(file.id) !== -1) ||
                             (_this._foldersDone.indexOf(file.id) !== -1))
                         {
-                            _this._logAction(' Нет информации/уже обработанный файл, пропускаю...');
-                            //_this._logAction(' Жду одну секунду, чтобы не упереться в лимит операций...');
+                            _this._logAction('log', ' Нет информации/уже обработанный файл, пропускаю...');
+                            //_this._logAction('log', ' Жду одну секунду, чтобы не упереться в лимит операций...');
 
                             setTimeout(function () {
                                 loopResult(i + 1, result, onFinish);
                             }, 100);
                         } else {
+                            //_this._logAction('found', file);
+
                             _this._getFileOwner(file, function(owner) {
                                 console.log('OWNER ', owner);
                                 if (owner.emailAddress === _this._fromUser.email) {
@@ -98,10 +103,8 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                         process = _this._processFile.bind(_this);
                                     }
 
-                                    console.log(process.toString());
-
                                     process(file, function() {
-                                        //_this._logAction(' Жду одну секунду, чтобы не упереться в лимит операций...');
+                                        //_this._logAction('log', ' Жду одну секунду, чтобы не упереться в лимит операций...');
 
                                         setTimeout(function() {
                                             console.log(i + 1);
@@ -110,9 +113,9 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                     });
                                 } else {
                                     if (!owner.emailAddress) {
-                                        _this._logAction(' ВНИМАНИЕ! Нет информации о владельце файла! ' + file.title);
+                                        _this._logAction('log', ' ВНИМАНИЕ! Нет информации о владельце файла! ' + file.title);
                                     } else {
-                                        _this._logAction(' Владелец файла ' + file.title + ' - другой пользователь ');
+                                        _this._logAction('log', ' Владелец файла ' + file.title + ' - другой пользователь ');
                                     }
 
                                     if (file.mimeType === 'application/vnd.google-apps.folder') {
@@ -126,7 +129,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                             loopResult(i + 1, result, onFinish);
                                         }, 100);
                                     }
-                                    //_this._logAction(' Жду одну секунду, чтобы не упереться в лимит операций...');
+                                    //_this._logAction('log', ' Жду одну секунду, чтобы не упереться в лимит операций...');
                                 }
                             });
 
@@ -135,7 +138,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                         onFinish();
                     }
                 }
-                //_this._logAction('Жду одну секунду, чтобы не упереться в лимит операций...');
+                //_this._logAction('log', 'Жду одну секунду, чтобы не упереться в лимит операций...');
 
                 setTimeout(function () {
                     loopResult(0, result, cb);
@@ -144,42 +147,62 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
             },
 
             _processFolder(folder, cb) {
-                this._logAction('Folder: ' + folder.title);
+                var _this = this;
+                this._logAction('current', folder);
+
+                this._logAction('log', 'Folder: ' + folder.title);
                 if (this._foldersDone.indexOf(folder.id) !== -1) {
-                    this._logAction(' Папка: ' + folder.title + '  уже была обработана');
+                    this._logAction('log', ' Папка: ' + folder.title + '  уже была обработана');
                     cb();
                 } else {
                     this._foldersDone.push(folder.id);
 
                     if (this._foldersProcessed < this._foldersLimit) {
                         this._foldersProcessed++;
-                        var _this = this;
+
                         this._copyFolderWithPermissions(folder, function() {
-                            _this._retrievePage(folder.id, null, null, cb);
+                            _this._retrievePage(folder.id, null, null, function () {
+                                _this._logAction('exit');
+                                cb();
+                            });
                         });
                     } else {
-                        this._retrievePage(folder.id, null, null, cb);
+                        this._logAction('log', 'Не обрабатываю - лимит операций');
+                        this._retrievePage(folder.id, null, null, function() {
+                            _this._logAction('exit');
+                            cb();
+                        });
                     }
                 }
 
             },
 
             _processFile(file, cb) {
-                this._logAction('File: ' + file.title);
+                var _this = this;
+                this._logAction('current', file);
+
+                this._logAction('log', 'File: ' + file.title);
 
                 if (this._filesDone.indexOf(file.id) !== -1) {
-                    this._logAction(' Файл: ' + file.title + ' уже был обработан');
+                    this._logAction('log', ' Файл: ' + file.title + ' уже был обработан');
                     cb();
                 } else {
                     if (file.title.indexOf('OLD -') === -10) {
-                        this._logAction(' Это старый файл, пропускаю');
+                        this._logAction('log', ' Это старый файл, пропускаю');
+
+                        this._logAction('exit');
                         cb();
                     } else {
                         if (this._filesProcessed < this._filesLimit) {
                             this._filesProcessed++;
                             this._filesDone.push(file.id);
-                            this._copyFileWithPermissions(file, cb);
+                            this._copyFileWithPermissions(file, function () {
+                                _this._logAction('exit');
+                                cb();
+                            });
                         } else {
+                            this._logAction('log', 'Не обрабатываю - лимит операций');
+                            this._logAction('exit');
                             cb();
                         }
                     }
@@ -187,7 +210,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
             },
 
             _getFileOwner(file, cb) {
-                this._logAction(' Определяю владельца: ' + file.title);
+                this._logAction('log', ' Определяю владельца: ' + file.title);
 
                 if (file.owners && file.owners.length) {
                     cb(file.owners.pop());
@@ -213,7 +236,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
 
                 request.execute(function (resp) {
                     if (resp.code) {
-                        _this._logAction(' Ошибка!!! ' + resp.message);
+                        _this._logAction('log', ' Ошибка!!! ' + resp.message);
                         cb([]);
                         return;
                     }
@@ -236,12 +259,12 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
 
                 request.execute(function (newFolder) {
                     if (newFolder.code) {
-                        _this._logAction(' Ошибка!!! ' + newFolder.message);
+                        _this._logAction('log', ' Ошибка!!! ' + newFolder.message);
                         cb();
                         return;
                     }
 
-                    _this._logAction(' Сделана копия папки: ' + newFolder.title);
+                    _this._logAction('log', ' Сделана копия папки: ' + newFolder.title);
 
                     var body = { 'title': 'OLD - ' + folder.title };
                     var request = gapi.client.drive.files.patch({
@@ -251,7 +274,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
 
                     request.execute(function (resp) {
                         if (resp.code) {
-                            _this._logAction(' Ошибка при переименовании!!! ' + resp.message);
+                            _this._logAction('log', ' Ошибка при переименовании!!! ' + resp.message);
                         }
 
                         _this._getFilePermissions(folder, function (perms) {
@@ -267,10 +290,10 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                             });
                                             request.execute(function (resp) {
                                                 if (newFolder.code) {
-                                                    _this._logAction(' Ошибка!!! ' + newFolder.message);
+                                                    _this._logAction('log', ' Ошибка!!! ' + newFolder.message);
                                                 }
 
-                                                //_this._logAction(' Жду одну секунду, чтобы не упереться в лимит операций...');
+                                                //_this._logAction('log', ' Жду одну секунду, чтобы не упереться в лимит операций...');
                                                 setTimeout(function () {
                                                     loopChildren(i + 1, children, onFinish);
                                                 }, 1000);
@@ -281,17 +304,17 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                     }
 
                                     if (children && children.length) {
-                                        _this._logAction(' Переношу детей для папки ' + newFolder.title);
+                                        _this._logAction('log', ' Переношу детей для папки ' + newFolder.title);
                                         loopChildren(0, children, cb);
                                     } else {
-                                        _this._logAction(' Нет детей у папки ' + newFolder.title);
+                                        _this._logAction('log', ' Нет детей у папки ' + newFolder.title);
                                         cb();
                                     }
                                 });
                             }
 
                             if (perms) {
-                                _this._logAction('- Доступы на папку ' + folder.title + ' есть у ' +
+                                _this._logAction('log', '- Доступы на папку ' + folder.title + ' есть у ' +
                                     perms.length + ' пользователей');
 
                                 function loopPermissions(i, permissions, onFinish) {
@@ -318,10 +341,10 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                             });
 
                                             request.execute(function (resp) {
-                                                _this._logAction(
+                                                _this._logAction('log',
                                                     '-- Проставлены разрешения: ' + newFolder.title + ' : ' + body.emailAddress
                                                 );
-                                                //_this._logAction('-- Жду одну секунду, чтобы не упереться в лимит операций...');
+                                                //_this._logAction('log', '-- Жду одну секунду, чтобы не упереться в лимит операций...');
                                                 setTimeout(function () {
                                                     loopPermissions(i + 1, permissions, onFinish);
                                                 }, 1000);
@@ -332,7 +355,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                     }
                                 }
 
-                                //_this._logAction('-- Жду одну секунду, чтобы не упереться в лимит операций...');
+                                //_this._logAction('log', '-- Жду одну секунду, чтобы не упереться в лимит операций...');
                                 setTimeout(function () {
                                     loopPermissions(0, perms, moveChildren);
                                 }, 1000);
@@ -354,12 +377,12 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
 
                 request.execute(function (newFile) {
                     if (newFile.code) {
-                        _this._logAction('-- Ошибка!!! ' + newFile.message);
+                        _this._logAction('log', '-- Ошибка!!! ' + newFile.message);
                         cb();
                         return;
                     }
 
-                    _this._logAction('- Скопировал: ' + file.title);
+                    _this._logAction('log', '- Скопировал: ' + file.title);
                     var body = { 'title': 'OLD - ' + file.title };
                     var request = gapi.client.drive.files.patch({
                         'fileId': file.id,
@@ -368,15 +391,15 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
 
                     request.execute(function (resp) {
                         if (resp.code) {
-                            _this._logAction('- Ошибка при переименовании!!! ' + resp.message);
+                            _this._logAction('log', '- Ошибка при переименовании!!! ' + resp.message);
                         }
 
-                        _this._logAction('- Переименован старый: ' + resp.title);
+                        _this._logAction('log', '- Переименован старый: ' + resp.title);
 
-                        _this._logAction('- Получаю информацию о доступах: ' + file.title);
+                        _this._logAction('log', '- Получаю информацию о доступах: ' + file.title);
 
                         _this._getFilePermissions(file, function(perms) {
-                            _this._logAction('-- Доступы на файл ' + file.title + ' есть у ' +
+                            _this._logAction('log', '-- Доступы на файл ' + file.title + ' есть у ' +
                                 perms.length + ' пользователей');
 
                             function loopPermissions(i, permissions, onFinish) {
@@ -406,7 +429,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                             _this._logAction(
                                                 '-- Проставлены разрешения: ' + newFile.title + ' : ' + body.emailAddress
                                             );
-                                            //_this._logAction('-- Жду одну секунду, чтобы не упереться в лимит операций...');
+                                            //_this._logAction('log', '-- Жду одну секунду, чтобы не упереться в лимит операций...');
                                             setTimeout(function() {
                                                 loopPermissions(i + 1, permissions, onFinish);
                                             }, 1000);
@@ -416,7 +439,7 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                                     onFinish();
                                 }
                             }
-                            //_this._logAction('-- Жду одну секунду, чтобы не упереться в лимит операций...');
+                            //_this._logAction('log', '-- Жду одну секунду, чтобы не упереться в лимит операций...');
                             setTimeout(function () {
                                 loopPermissions(0, perms, cb);
                             }, 1000);
@@ -425,14 +448,45 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                 });
             },
 
-            _logAction(text) {
-                bemDom.append(this.domElem, BEMHTML.apply({
-                    block: 'step3',
-                    elem: 'log',
-                    text: text
-                }));
+            _logAction(action, data) {
+                var text;
 
-                bemDom.win.scrollTop(100000);
+                function pathHtml(html, item) {
+                    if (html) html += ' → ';
+                    var image = item.iconLink || item.image;
+                    html += (image ? '<img height="20" src="' + image + '"/> ' : '') + item.title;
+                    return html;
+                }
+
+                if (action === 'log') {
+                    text = data;
+                }
+
+                if (action === 'current') {
+                    this._path.push(data);
+                    text = '<h3>Работаю с ' + this._path.reduce(pathHtml, '') + '</h3>';
+                }
+
+                if (action === 'exit') {
+                    text = '<h3>Выхожу из ' + this._path.reduce(pathHtml, '') + '</h3>';
+                    this._path.pop();
+                }
+
+
+                var margin = this._path.length * 20 + 'px';
+
+                if (text) {
+                    bemDom.append(this.domElem, BEMHTML.apply({
+                        block: 'step3',
+                        elem: 'log',
+                        text: text,
+                        attrs: {
+                            style: 'margin-left:' + margin
+                        }
+                    }));
+
+                    bemDom.win.scrollTop(100000);
+                }
             }
         },
         {

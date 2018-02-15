@@ -1,7 +1,9 @@
 block('folder')(
     addJs()(function() {
         return {
-            id: this.ctx.id
+            id: this.ctx.id,
+            title: this.ctx.title,
+            iconLink: this.ctx.iconLink
         };
     }),
 

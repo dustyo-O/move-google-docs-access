@@ -8,7 +8,13 @@ function (provide, bemDom, FolderCheck, FolderTitle) {
             },
 
             _onCheck: function(e, data) {
-                this._emit('checkFolder', { id: this.params.id, check: data })
+                console.log(this.params);
+                this._emit('checkFolder', {
+                    id: this.params.id,
+                    iconLink: this.params.iconLink,
+                    title: this.params.title,
+                    check: data
+                });
             }
         },
         {

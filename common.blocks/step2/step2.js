@@ -29,10 +29,10 @@ function (provide, bemDom, Folder, Button, BEMHTML) {
 
             _onCheckFolder: function (e, data) {
                 if (data.check) {
-                    this._checked.push(data.id);
+                    this._checked.push(data);
                 } else {
-                    this._checked = this._checked.reduce(function(checked, id) {
-                        if (id !== data.id) checked.push(id);
+                    this._checked = this._checked.reduce(function(checked, elem) {
+                        if (elem.id !== data.id) checked.push(elem);
 
                         return checked;
                     }, []);
@@ -84,7 +84,9 @@ function (provide, bemDom, Folder, Button, BEMHTML) {
                                     id: folder.id,
                                     title: folder.title,
                                     icon: folder.iconLink,
-                                    checked: _this._checked.indexOf(folder.id) !== -1
+                                    checked: _this._checked.some(function(elem) {
+                                        return elem.id === folder.id
+                                    })
                                 };
                             })
                         );
