@@ -23,9 +23,9 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                 this.setMod('visible');
 
                 this._filesProcessed = 0;
-                this._filesLimit = 5;
+                this._filesLimit = Infinity;
                 this._foldersProcessed = 0;
-                this._foldersLimit = 5;
+                this._foldersLimit = Infinity;
                 this._foldersDone = [];
                 this._filesDone = [];
                 this._path = [];
@@ -48,8 +48,8 @@ modules.define('step3', ['i-bem-dom', 'spin'], function (provide, bemDom, Spin) 
                     return this._retrievePage(folderId, gapi.client.drive.files.list(params), [], cb);
                 }
 
-                if (!this._foldersLimit || this._foldersLimit > 10) return;
-                if (!this._filesLimit || this._filesLimit > 10) return;
+                if (!this._foldersLimit || this._foldersLimit > Infinity) return;
+                if (!this._filesLimit || this._filesLimit > Infinity) return;
 
                 var _this = this;
                 request.execute(function(resp) {
